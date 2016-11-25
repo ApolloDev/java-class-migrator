@@ -1,4 +1,4 @@
-import edu.pitt.apollo.javaclassmigrator.exception.SetterInitializationException;
+import edu.pitt.apollo.javaclassmigrator.exception.MigrationException;
 
 public abstract class AbstractSetter<N, O> {
 
@@ -14,7 +14,7 @@ public abstract class AbstractSetter<N, O> {
         }
     }
 
-    public abstract void set();
+    public abstract void set() throws MigrationException;
 
     public N getNewTypeInstance() {
         return newTypeInstance;

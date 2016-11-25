@@ -28,13 +28,13 @@ public class Migrator {
         this.javaPackageName = javaPackageName;
 	}
 	
-	public void createMigrationFilesForClass(Class newClazz, Class oldClazz) throws IOException, URISyntaxException, ClassNotFoundException {
-        MigrationUtility.createAbstractSetterClass(javaFileOutputDirectory, javaPackageName);
+	public void createMigrationFilesForClass(Class newClazz, Class oldClazz) throws IOException, URISyntaxException, ClassNotFoundException, NoSuchFieldException {
+        MigrationUtility.createInitialClassFiles(javaFileOutputDirectory, javaPackageName);
         AbstractBuilder setterClassBuilder = AbstractBuilderFactory.getBuilder(newClazz, oldClazz, javaFileOutputDirectory, javaPackageName);
 		setterClassBuilder.build();
 	}
 
-    public void createMigrationFilesForClass(String newClassString, String oldClassString) throws IOException, ClassNotFoundException, URISyntaxException {
+    public void createMigrationFilesForClass(String newClassString, String oldClassString) throws IOException, ClassNotFoundException, URISyntaxException, NoSuchFieldException {
         createMigrationFilesForClass(Class.forName(newClassString), Class.forName(oldClassString));
     }
 }
