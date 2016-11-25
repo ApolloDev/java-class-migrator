@@ -1,6 +1,5 @@
 package edu.pitt.apollo.javaclassmigrator.builder;
 
-import edu.pitt.apollo.javaclassmigrator.exception.OldClassTypeNotFoundException;
 import edu.pitt.apollo.javaclassmigrator.util.MigrationUtility;
 
 import java.io.FileNotFoundException;
@@ -11,8 +10,8 @@ import java.util.Set;
  */
 public class SetterClassFactoryBuilder extends AbstractBuilder {
 
-    public SetterClassFactoryBuilder(Class newClass, Class oldClass, String outputDirectory, String packageName) {
-        super(newClass, oldClass, outputDirectory, packageName);
+    public SetterClassFactoryBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
+        super(newClass, oldClassName, outputDirectory, packageName, callSet);
     }
 
     @Override
@@ -25,34 +24,24 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
     protected void buildMethods() throws FileNotFoundException {
 
         if (!classSetterExists(newClass)) {
-            try {
-                BaseTypeSetterClassBuilder builder = new BaseTypeSetterClassBuilder(newClass,
-                        getNewClassWithOldTypePackage(newClass, oldClass), outputDirectory, packageName);
-                builder.build();
-            } catch (OldClassTypeNotFoundException ex) {
-                warnNoSetterClassCanBeCreated(newClass);
-            }
+            BaseTypeSetterClassBuilder builder = new BaseTypeSetterClassBuilder(newClass,
+                    getNewClassWithOldTypePackage(newClass, oldClassName), outputDirectory, packageName, callSet);
+            builder.build();
         }
 
         stBuilder.append("\tpublic static ").append(newClass.getSimpleName()).append("Setter getSetter(Object oldTypeInstance) throws MigrationException {\n\n");
 
         Set<Class> subClasses = MigrationUtility.getSubclassesForClass(newClass);
         for (Class subClass : subClasses) {
-            Class oldClassType;
-            try {
-                oldClassType = getNewClassWithOldTypePackage(subClass, oldClass);
-            } catch (OldClassTypeNotFoundException ex) {
-                continue;
-            }
-            if (!classSetterExists(subClass)) {
-                SubTypeSetterClassBuilder builder = new SubTypeSetterClassBuilder(newClass, subClass,
-                        oldClassType, outputDirectory, packageName);
-                builder.build();
-            }
+            String oldClassTypeName = getNewClassWithOldTypePackage(subClass, oldClassName);
+            SubTypeSetterClassBuilder builder = new SubTypeSetterClassBuilder(newClass, subClass,
+                    oldClassTypeName, outputDirectory, packageName, callSet);
+            builder.build();
+
 
             stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(subClass.getCanonicalName()).append(") {\n\n");
             stBuilder.append("\t\t\treturn new ").append(subClass.getSimpleName() + "Setter(").append(subClass.getCanonicalName())
-                    .append(".class, (").append(oldClassType.getCanonicalName()).append(") oldTypeInstance);\n");
+                    .append(".class, (").append(oldClassTypeName).append(") oldTypeInstance);\n");
             stBuilder.append("\t\t}\n\n");
         }
 

@@ -1,20 +1,20 @@
 package edu.pitt.apollo.javaclassmigrator.builder;
 
 import java.io.FileNotFoundException;
+import java.util.Set;
 
 /**
  * Created by nem41 on 11/25/16.
  */
 public class BaseTypeSetterClassBuilder extends SetterClassBuilder {
-    public BaseTypeSetterClassBuilder(Class newClass, Class oldClass, String outputDirectory, String packageName) {
-        super(newClass, oldClass, outputDirectory, packageName);
+    public BaseTypeSetterClassBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
+        super(newClass, oldClassName, outputDirectory, packageName, callSet);
     }
 
     @Override
     protected void buildClassDefinition() {
 
         String newClassName = newClass.getCanonicalName();
-        String oldClassName = oldClass.getCanonicalName();
 
         stBuilder.append("package ").append(packageName).append(";\n\n");
 

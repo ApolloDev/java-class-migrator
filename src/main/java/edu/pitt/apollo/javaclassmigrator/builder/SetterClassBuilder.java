@@ -5,13 +5,13 @@
  */
 package edu.pitt.apollo.javaclassmigrator.builder;
 
-import edu.pitt.apollo.javaclassmigrator.exception.OldClassTypeNotFoundException;
 import edu.pitt.apollo.javaclassmigrator.util.MigrationUtility;
 
 import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author nem41
@@ -23,8 +23,8 @@ public class SetterClassBuilder extends AbstractBuilder {
     protected String extendedSetterClassName;
     protected final List<String> setters;
 
-    public SetterClassBuilder(Class newClass, Class oldClass, String outputDirectory, String packageName) {
-        super(newClass, oldClass, outputDirectory, packageName);
+    public SetterClassBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
+        super(newClass, oldClassName, outputDirectory, packageName, callSet);
         setters = new ArrayList<>();
         extendedSetterClassName = ABSTRACT_SETTER_CLASS_NAME;
     }
@@ -39,7 +39,6 @@ public class SetterClassBuilder extends AbstractBuilder {
     protected void buildClassDefinition() {
 
         String newClassName = newClass.getCanonicalName();
-        String oldClassName = oldClass.getCanonicalName();
 
         stBuilder.append("package ").append(packageName).append(";\n\n");
 
@@ -86,20 +85,19 @@ public class SetterClassBuilder extends AbstractBuilder {
 
                     try {
                         Class listClass = getListClass(newClass, fieldName);
-                        Class oldListClass;
+                        String oldListClassName;
                         if (classIsBuiltInType(listClass)) {
-                            oldListClass = listClass;
+                            oldListClassName = listClass.getCanonicalName();
                         } else {
-                            oldListClass = getNewClassWithOldTypePackage(listClass, oldClass);
-                            if (!classSetterExists(listClass) && !listClass.getCanonicalName().equals(newClass.getCanonicalName())) {
-                                // create setter class file
-                                AbstractBuilder builder = AbstractBuilderFactory.getBuilder(listClass,
-                                        oldListClass, outputDirectory, packageName);
-                                    builder.build();
-                            }
+                            oldListClassName = getNewClassWithOldTypePackage(listClass, oldClassName);
+
+                            AbstractBuilder builder = AbstractBuilderFactory.getBuilder(listClass,
+                                    oldListClassName, outputDirectory, packageName, callSet);
+                            builder.build();
+
                         }
 
-                        stBuilder.append("\t\tfor (").append(oldListClass.getCanonicalName()).append(" oldObj : ").append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("()) {\n");
+                        stBuilder.append("\t\tfor (").append(oldListClassName).append(" oldObj : ").append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("()) {\n");
 
                         if (classIsBuiltInType(listClass)) {
                             stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(oldObj);\n");
@@ -111,7 +109,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                             stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(newObj);\n");
                         }
                         stBuilder.append("\t\t}\n");
-                    } catch (NoSuchFieldException | OldClassTypeNotFoundException ex) {
+                    } catch (NoSuchFieldException ex) {
                         stBuilder.append("\t\tneeds_implementation\n\n");
                     }
                 } else {
@@ -128,15 +126,10 @@ public class SetterClassBuilder extends AbstractBuilder {
                     stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(methodName).append("(");
                     stBuilder.append("setter.").append(ABSTRACT_SETTER_GET_NEW_TYPE_METHOD).append("()");
 
-                    if (!classSetterExists(subClass)) {
-                        try {
-                            AbstractBuilder builder = AbstractBuilderFactory.getBuilder(subClass,
-                                    getNewClassWithOldTypePackage(subClass, oldClass), outputDirectory, packageName);
-                            builder.build();
-                        } catch (OldClassTypeNotFoundException ex) {
-                            warnNoSetterClassCanBeCreated(subClass);
-                        }
-                    }
+                    AbstractBuilder builder = AbstractBuilderFactory.getBuilder(subClass,
+                            getNewClassWithOldTypePackage(subClass, oldClassName), outputDirectory, packageName, callSet);
+                    builder.build();
+
                     stBuilder.append(");");
                 }
                 stBuilder.append("\n\t}\n\n");

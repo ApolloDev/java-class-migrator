@@ -1,6 +1,5 @@
 package edu.pitt.apollo.javaclassmigrator.builder;
 
-import edu.pitt.apollo.javaclassmigrator.exception.OldClassTypeNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.util.Set;
 
 /**
  * Created by nem41 on 11/23/16.
@@ -20,21 +20,28 @@ public abstract class AbstractBuilder {
     protected final StringBuilder stBuilder;
     protected final String outputDirectory;
     protected final String packageName;
-    protected final Class newClass, oldClass;
+    protected final Class newClass;
+    protected final String oldClassName;
+    protected final Set<String> callSet;
 
-    public AbstractBuilder(Class newClass, Class oldClass, String outputDirectory, String packageName) {
+    public AbstractBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
         stBuilder = new StringBuilder();
         this.newClass = newClass;
-        this.oldClass = oldClass;
+        this.oldClassName = oldClassName;
         this.outputDirectory = outputDirectory;
         this.packageName = packageName;
+        this.callSet = callSet;
     }
 
     public void build() throws FileNotFoundException {
-        buildClassDefinition();
-        buildMethods();
-        completeClass();
-        printSetterFile();
+        if (!classSetterExists(newClass) && !callSet.contains(newClass.getCanonicalName())) {
+            callSet.add(newClass.getCanonicalName());
+            buildClassDefinition();
+            buildMethods();
+            completeClass();
+            printSetterFile();
+            callSet.remove(newClass.getCanonicalName());
+        }
     }
 
     protected abstract void buildClassDefinition();
@@ -73,12 +80,9 @@ public abstract class AbstractBuilder {
         ps.close();
     }
 
-    public static Class getNewClassWithOldTypePackage(Class clazz, Class oldClass) throws OldClassTypeNotFoundException {
-        try {
-            return Class.forName(oldClass.getPackage().getName() + "." + clazz.getSimpleName());
-        } catch (ClassNotFoundException ex) {
-            throw new OldClassTypeNotFoundException();
-        }
+    public static String getNewClassWithOldTypePackage(Class clazz, String oldClassName) {
+        String packageName = oldClassName.substring(0, oldClassName.lastIndexOf("."));
+        return packageName + "." + clazz.getSimpleName();
     }
 
 }

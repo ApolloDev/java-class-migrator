@@ -28,9 +28,9 @@ public class Migrator {
         this.javaPackageName = javaPackageName;
 	}
 	
-	public void createMigrationFilesForClass(Class newClazz, Class oldClazz) throws IOException, URISyntaxException, ClassNotFoundException, NoSuchFieldException {
+	public void createMigrationFilesForClass(Class newClass, Class oldClass) throws IOException, URISyntaxException, ClassNotFoundException, NoSuchFieldException {
         MigrationUtility.createInitialClassFiles(javaFileOutputDirectory, javaPackageName);
-        AbstractBuilder setterClassBuilder = AbstractBuilderFactory.getBuilder(newClazz, oldClazz, javaFileOutputDirectory, javaPackageName);
+        AbstractBuilder setterClassBuilder = AbstractBuilderFactory.getBuilder(newClass, oldClass.getCanonicalName(), javaFileOutputDirectory, javaPackageName);
 		setterClassBuilder.build();
 	}
 
