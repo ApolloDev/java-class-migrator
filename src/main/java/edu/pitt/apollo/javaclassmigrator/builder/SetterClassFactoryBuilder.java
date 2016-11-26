@@ -15,6 +15,11 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
     }
 
     @Override
+    protected String getClassNameForCallSet() {
+        return newClass.getCanonicalName() + "Factory";
+    }
+
+    @Override
     protected void buildClassDefinition() {
         stBuilder.append("package ").append(packageName).append(";\n\n");
         stBuilder.append("public class ").append(newClass.getSimpleName()).append("SetterFactory {\n\n");

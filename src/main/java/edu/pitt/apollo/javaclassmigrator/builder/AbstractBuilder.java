@@ -34,15 +34,18 @@ public abstract class AbstractBuilder {
     }
 
     public void build() throws FileNotFoundException {
-        if (!classSetterExists(newClass) && !callSet.contains(newClass.getCanonicalName())) {
-            callSet.add(newClass.getCanonicalName());
+        String classCallSetName = getClassNameForCallSet();
+        if (!classSetterExists(newClass) && !callSet.contains(classCallSetName)) {
+            callSet.add(classCallSetName);
             buildClassDefinition();
             buildMethods();
             completeClass();
             printSetterFile();
-            callSet.remove(newClass.getCanonicalName());
+            callSet.remove(classCallSetName);
         }
     }
+
+    protected abstract String getClassNameForCallSet();
 
     protected abstract void buildClassDefinition();
 
@@ -71,6 +74,10 @@ public abstract class AbstractBuilder {
 
     protected static void warnNoSetterClassCanBeCreated(Class clazz) {
         logger.warn("Cannot create setter class for " + clazz.getCanonicalName());
+    }
+
+    protected static void warnNoSetterMethodCanBeCreated(Class clazz, String methodName) {
+        logger.warn("Cannot create setter method for " + clazz.getCanonicalName() + ", method name is :" + methodName);
     }
 
     protected static void writeClassTofile(String content, String outputDirectory, String className) throws FileNotFoundException {

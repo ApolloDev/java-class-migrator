@@ -15,6 +15,7 @@ public class AbstractBuilderFactory {
     }
 
     protected static AbstractBuilder getBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
+
         if (MigrationUtility.classHasSubclasses(newClass)) {
             return new SetterClassFactoryBuilder(newClass, oldClassName, outputDirectory, packageName, callSet);
         } else {
