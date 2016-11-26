@@ -70,39 +70,55 @@ public class SetterClassBuilder extends AbstractBuilder {
             String getMethodName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
             if (!getMethodName.contains("Class")) {
 
-                String methodName = getMethodName.replaceFirst("get", "set");
-                Method method;
+                String setMethodName = getMethodName.replaceFirst("get", "set");
+                Method method = null;
+                // try to find the accessor method matching the field
                 try {
+                    // first try exact match
                     method = newClass.getMethod(getMethodName);
                 } catch (NoSuchMethodException ex) {
-                    // try "is" method
+                    // next try "is" method instead of "get"
                     try {
                         getMethodName = getMethodName.replaceFirst("get", "is");
                         method = newClass.getMethod(getMethodName);
                     } catch (NoSuchMethodException ex1) {
-                        warnNoSetterMethodCanBeCreated(newClass, getMethodName);
-                        continue;
+                        // finally, try to match field name and method spelling (case insensitive)
+                        String fieldNameLc = fieldName.toLowerCase();
+                        Method[] methods = newClass.getDeclaredMethods();
+                        boolean foundMethod = false;
+                        for (Method testMethod : methods) {
+                            String testMethodName = testMethod.getName();
+                            if (("get" + fieldNameLc).equals(testMethodName.toLowerCase())
+                                    || ("is" + fieldName).equals(testMethodName.toLowerCase())) {
+                                getMethodName = testMethodName;
+                                method = testMethod;
+                                foundMethod = true;
+                                break;
+                            }
+                        }
+
+                        if (!foundMethod) {
+                            warnNoSetterMethodCanBeCreated(newClass, getMethodName);
+                            continue;
+                        }
                     }
                 }
 
-                stBuilder.append("\tprivate void ").append(methodName).append("() throws MigrationException {\n");
+                stBuilder.append("\tprivate void ").append(setMethodName).append("() throws MigrationException {\n");
 
-                setters.add(methodName);
+                setters.add(setMethodName);
 
                 Class subClass = method.getReturnType();
                 if (subClass.getName().toLowerCase().contains("enum")) {
-                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(methodName).append("(");
+                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
                     stBuilder.append(subClass.getCanonicalName()).append(".fromValue(").append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("().toString())");
                     stBuilder.append(");");
 
                 } else if (classIsBuiltInType(subClass)) {
-                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(methodName).append("(");
+                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
                     stBuilder.append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("()");
                     stBuilder.append(");");
                 } else if (subClass.getSimpleName().contains("List")) {
-//                    String fieldName = methodName.substring(methodName.indexOf("set") + 3);
-//                    fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
-
                     try {
                         Class listClass = getListClass(newClass, fieldName);
 
@@ -149,7 +165,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                     }
 
                     stBuilder.append("\t\tsetter.set();\n");
-                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(methodName).append("(");
+                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
                     stBuilder.append("setter.").append(ABSTRACT_SETTER_GET_NEW_TYPE_METHOD).append("()");
 
                     AbstractBuilder builder = AbstractBuilderFactory.getBuilder(subClass,
