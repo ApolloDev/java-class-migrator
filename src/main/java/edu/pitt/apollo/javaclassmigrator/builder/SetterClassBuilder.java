@@ -36,7 +36,7 @@ public class SetterClassBuilder extends AbstractBuilder {
 
     @Override
     protected String getClassNameForCallSet() {
-        return newClass.getCanonicalName();
+        return getStandardClassCallName(newClass);
     }
 
     @Override

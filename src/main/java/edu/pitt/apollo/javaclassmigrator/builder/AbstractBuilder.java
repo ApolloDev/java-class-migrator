@@ -43,6 +43,7 @@ public abstract class AbstractBuilder {
             buildMethods();
             completeClass();
             printSetterFile();
+            buildSuperClassSetter();
             callSet.remove(classCallSetName);
         }
     }
@@ -57,7 +58,15 @@ public abstract class AbstractBuilder {
 
     public abstract void printSetterFile() throws FileNotFoundException;
 
-    protected boolean classSetterExists(Class subClass) {
+    protected final String getStandardClassCallName(Class clazz) {
+        return clazz.getCanonicalName();
+    }
+
+    protected final String getClassCallNameForFactory(Class clazz) {
+        return clazz.getCanonicalName() + "Factory";
+    }
+
+    protected final boolean classSetterExists(Class subClass) {
         File file = new File(outputDirectory + File.separator + subClass.getSimpleName() + "Setter.java");
         if (!file.exists()) {
             File factoryFile = new File(outputDirectory + File.separator + subClass.getSimpleName() + "SetterFactory.java");
@@ -92,6 +101,19 @@ public abstract class AbstractBuilder {
     public static String getNewClassWithOldTypePackage(Class clazz, String oldClassName) {
         String packageName = oldClassName.substring(0, oldClassName.lastIndexOf("."));
         return packageName + "." + clazz.getSimpleName();
+    }
+
+    private void buildSuperClassSetter() throws FileNotFoundException {
+        if (!superClass.getSimpleName().equals("Object")) {
+            String superClassNameForCallSet = getStandardClassCallName(superClass);
+            String superClassFactoryNameForCallSet = getClassCallNameForFactory(superClass);
+            if (!callSet.contains(superClassNameForCallSet)
+                    && !callSet.contains(superClassFactoryNameForCallSet)) {
+                AbstractBuilder builder = AbstractBuilderFactory.getBuilder(superClass,
+                        getNewClassWithOldTypePackage(superClass, oldClassName), outputDirectory, packageName);
+                builder.build();
+            }
+        }
     }
 
 }
