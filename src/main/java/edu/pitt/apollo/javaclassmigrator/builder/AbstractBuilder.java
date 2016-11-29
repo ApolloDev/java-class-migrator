@@ -21,6 +21,7 @@ public abstract class AbstractBuilder {
     protected final String outputDirectory;
     protected final String packageName;
     protected final Class newClass;
+    protected final Class superClass;
     protected final String oldClassName;
     protected final Set<String> callSet;
 
@@ -31,6 +32,7 @@ public abstract class AbstractBuilder {
         this.outputDirectory = outputDirectory;
         this.packageName = packageName;
         this.callSet = callSet;
+        this.superClass = newClass.getSuperclass();
     }
 
     public void build() throws FileNotFoundException {

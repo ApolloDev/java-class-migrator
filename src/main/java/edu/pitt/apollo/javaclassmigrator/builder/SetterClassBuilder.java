@@ -27,7 +27,11 @@ public class SetterClassBuilder extends AbstractBuilder {
     public SetterClassBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
         super(newClass, oldClassName, outputDirectory, packageName, callSet);
         setters = new ArrayList<>();
-        extendedSetterClassName = ABSTRACT_SETTER_CLASS_NAME;
+        if (superClass != null && !superClass.getSimpleName().equals("Object")) {
+            extendedSetterClassName = superClass.getSimpleName() + "Setter";
+        } else {
+            extendedSetterClassName = ABSTRACT_SETTER_CLASS_NAME;
+        }
     }
 
     @Override
@@ -186,6 +190,9 @@ public class SetterClassBuilder extends AbstractBuilder {
 
         stBuilder.append("\t@Override\n");
         stBuilder.append("\tpublic void set() throws MigrationException {\n");
+        if (!extendedSetterClassName.equals(ABSTRACT_SETTER_CLASS_NAME)) {
+            stBuilder.append("\t\tsuper.set();\n");
+        }
         addNewVariableSetterContent();
         for (String setMethod : setters) {
             stBuilder.append("\t\t").append(setMethod).append("();\n");

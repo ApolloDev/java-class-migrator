@@ -39,14 +39,20 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
         Set<Class> subClasses = MigrationUtility.getSubclassesForClass(newClass);
         for (Class subClass : subClasses) {
             String oldClassTypeName = getNewClassWithOldTypePackage(subClass, oldClassName);
-            SubTypeSetterClassBuilder builder = new SubTypeSetterClassBuilder(newClass, subClass,
+            AbstractBuilder builder = AbstractBuilderFactory.getBuilder(subClass,
                     oldClassTypeName, outputDirectory, packageName, callSet);
             builder.build();
 
 
             stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(subClass.getCanonicalName()).append(") {\n\n");
-            stBuilder.append("\t\t\treturn new ").append(subClass.getSimpleName() + "Setter(").append(subClass.getCanonicalName())
-                    .append(".class, (").append(oldClassTypeName).append(") oldTypeInstance);\n");
+
+            if (MigrationUtility.classHasSubclasses(subClass)) {
+                stBuilder.append("\t\t\treturn ").append(subClass.getSimpleName() + "SetterFactory.getSetter(oldTypeInstance);\n");
+            } else {
+
+                stBuilder.append("\t\t\treturn new ").append(subClass.getSimpleName() + "Setter(").append(subClass.getCanonicalName())
+                        .append(".class, (").append(oldClassTypeName).append(") oldTypeInstance);\n");
+            }
             stBuilder.append("\t\t}\n\n");
         }
 

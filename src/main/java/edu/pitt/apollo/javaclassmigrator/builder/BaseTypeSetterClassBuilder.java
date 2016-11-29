@@ -20,7 +20,7 @@ public class BaseTypeSetterClassBuilder extends SetterClassBuilder {
 
         stBuilder.append("public class ").append(newClass.getSimpleName()).append("Setter<T extends ").append(newClassName)
         .append(", O extends ").append(oldClassName).append("> extends ");
-        stBuilder.append(ABSTRACT_SETTER_CLASS_NAME).append("<T,O>").append(" {\n\n");
+        stBuilder.append(extendedSetterClassName).append("<T,O>").append(" {\n\n");
 
         stBuilder.append("\tpublic ").append(newClass.getSimpleName()).append("Setter(")
                 .append("Class<T> newTypeClass, O ").append(OLD_TYPE_INSTANCE).append(") throws MigrationException {\n");

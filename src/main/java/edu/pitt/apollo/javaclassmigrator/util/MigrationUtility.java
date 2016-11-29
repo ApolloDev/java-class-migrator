@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -34,7 +35,16 @@ public class MigrationUtility {
         Reflections reflections = new Reflections(clazz.getPackage().getName());
 
         Set<Class> subTypes = reflections.getSubTypesOf(clazz);
-        return subTypes;
+        Set<Class> directSubtypes = new HashSet<>();
+
+        for (Class subClass : subTypes) {
+            String name = subClass.getSuperclass().getCanonicalName();
+            if (name.equals(clazz.getCanonicalName())) {
+                directSubtypes.add(subClass);
+            }
+        }
+
+        return directSubtypes;
     }
 
     private static void writeClassTofile(String content, String outputDirectory, String className) throws FileNotFoundException {
