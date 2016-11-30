@@ -49,9 +49,14 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
             if (MigrationUtility.classHasSubclasses(subClass)) {
                 stBuilder.append("\t\t\treturn ").append(subClass.getSimpleName() + "SetterFactory.getSetter(oldTypeInstance);\n");
             } else {
-
-                stBuilder.append("\t\t\treturn new ").append(subClass.getSimpleName() + "Setter(").append(subClass.getCanonicalName())
-                        .append(".class, (").append(oldClassTypeName).append(") oldTypeInstance);\n");
+                String className;
+                if (abstractClasses.contains(subClass.getSimpleName())) {
+                    className = subClass.getSimpleName() + "SetterImpl";
+                } else {
+                    className = subClass.getSimpleName() + "Setter";
+                }
+                stBuilder.append("\t\t\treturn new ").append(className).append("(").append(subClass.getCanonicalName())
+                        .append(".class, oldTypeInstance);\n");
             }
             stBuilder.append("\t\t}\n\n");
         }

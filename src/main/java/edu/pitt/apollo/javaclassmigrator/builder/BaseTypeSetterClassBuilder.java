@@ -16,14 +16,14 @@ public class BaseTypeSetterClassBuilder extends SetterClassBuilder {
 
         String newClassName = newClass.getCanonicalName();
 
-        stBuilder.append("package ").append(packageName).append(";\n\n");
+//        stBuilder.append("package ").append(packageName).append(";\n\n");
 
-        stBuilder.append("public class ").append(newClass.getSimpleName()).append("Setter<T extends ").append(newClassName)
-        .append(", O extends ").append(oldClassName).append("> extends ");
-        stBuilder.append(extendedSetterClassName).append("<T,O>").append(" {\n\n");
+        stBuilder.append(newClass.getSimpleName()).append("Setter<T extends ").append(newClassName)
+        .append("> extends ");
+        stBuilder.append(extendedSetterClassName).append("<T>").append(" {\n\n");
 
         stBuilder.append("\tpublic ").append(newClass.getSimpleName()).append("Setter(")
-                .append("Class<T> newTypeClass, O ").append(OLD_TYPE_INSTANCE).append(") throws MigrationException {\n");
+                .append("Class<T> newTypeClass, Object ").append(OLD_TYPE_INSTANCE).append(") throws MigrationException {\n");
         stBuilder.append("\t\tsuper(").append("newTypeClass").append(", ").append(OLD_TYPE_INSTANCE).append(");\n");
         stBuilder.append("\n\t}\n\n");
     }

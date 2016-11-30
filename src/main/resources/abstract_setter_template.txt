@@ -1,11 +1,11 @@
 import edu.pitt.apollo.javaclassmigrator.exception.MigrationException;
 
-public abstract class AbstractSetter<N, O> {
+public abstract class AbstractSetter<N> {
 
     protected final N newTypeInstance;
-    protected final O oldTypeInstance;
+    protected final Object oldTypeInstance;
 
-    public AbstractSetter(Class<N> newTypeClass, O oldTypeInstance) throws SetterInitializationException {
+    public AbstractSetter(Class<N> newTypeClass, Object oldTypeInstance) throws SetterInitializationException {
         try {
             this.newTypeInstance = newTypeClass.newInstance();
             this.oldTypeInstance = oldTypeInstance;

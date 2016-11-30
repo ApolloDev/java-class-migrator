@@ -32,6 +32,7 @@ public class SetterClassBuilder extends AbstractBuilder {
         } else {
             extendedSetterClassName = ABSTRACT_SETTER_CLASS_NAME;
         }
+        classDefinitionBuilder.append("public class ");
     }
 
     @Override
@@ -49,17 +50,18 @@ public class SetterClassBuilder extends AbstractBuilder {
     protected void buildClassDefinition() {
 
         String newClassName = newClass.getCanonicalName();
+        stBuilder.append(newClass.getSimpleName()).append("Setter extends ");
 
-        stBuilder.append("package ").append(packageName).append(";\n\n");
+        if (abstractClasses.contains(extendedSetterClassName)) {
+            setClassAbstract();
+        }
 
-        stBuilder.append("public class ").append(newClass.getSimpleName()).append("Setter extends ");
         stBuilder.append(extendedSetterClassName).append("<");
-        stBuilder.append(newClassName).append(",").append(oldClassName).append(">").append(" {\n\n");
+        stBuilder.append(newClassName).append(">").append(" {\n\n");
 
         stBuilder.append("\tpublic ").append(newClass.getSimpleName()).append("Setter(")
                 .append("Class<").append(newClassName).append("> newTypeClass, ")
-                .append(oldClassName)
-                .append(" ").append(OLD_TYPE_INSTANCE).append(") throws MigrationException {\n");
+                .append("Object ").append(OLD_TYPE_INSTANCE).append(") throws MigrationException {\n");
         stBuilder.append("\t\tsuper(").append("newTypeClass").append(", ").append(OLD_TYPE_INSTANCE).append(");\n");
         stBuilder.append("\n\t}\n\n");
     }
@@ -108,31 +110,88 @@ public class SetterClassBuilder extends AbstractBuilder {
                     }
                 }
 
-                stBuilder.append("\tprivate void ").append(setMethodName).append("() throws MigrationException {\n");
-
                 setters.add(setMethodName);
+
+                if (classIsAbstract) {
+                    setAbstractMethodName(setMethodName);
+                    continue;
+                }
 
                 Class subClass = method.getReturnType();
                 if (subClass.getName().toLowerCase().contains("enum")) {
+                    stBuilder.append("\tprotected void ").append(setMethodName).append("() throws MigrationException {\n");
                     stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
-                    stBuilder.append(subClass.getCanonicalName()).append(".fromValue(").append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("().toString())");
+                    stBuilder.append(subClass.getCanonicalName()).append(".valueOf(((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("().toString())");
                     stBuilder.append(");");
-
+                    stBuilder.append("\n\t}\n\n");
                 } else if (classIsBuiltInType(subClass)) {
-                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
-                    stBuilder.append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("()");
-                    stBuilder.append(");");
-                } else if (subClass.getSimpleName().contains("List")) {
+
                     try {
+                        Class oldClass = Class.forName(oldClassName);
+                        try {
+                            Method mth = oldClass.getDeclaredMethod(getMethodName);
+                            stBuilder.append("\tprotected void ").append(setMethodName).append("() throws MigrationException {\n");
+
+                            stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
+                            stBuilder.append("((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("()");
+                            stBuilder.append(");");
+                            stBuilder.append("\n\t}\n\n");
+
+                        } catch (NoSuchMethodException ex) {
+                            // method not found, make abstract
+                            setAbstractMethodName(setMethodName);
+                            setClassAbstract();
+                        }
+                    } catch (ClassNotFoundException ex) {
+                        // class not found, make abstract
+                        setAbstractMethodName(setMethodName);
+                        setClassAbstract();
+                    }
+
+                } else if (subClass.getSimpleName().contains("List")) {
+
+                    try {
+                        Class oldClass = null;
+                        try {
+                            oldClass = Class.forName(oldClassName);
+                        } catch (ClassNotFoundException ex){
+                            //this shouldn't happen since this has already been checked
+                        }
+
+                        // does old class have same field?
+                        boolean oldMethodIsList = true;
+                        Class oldListClass;
+                        String oldObjectReference = "oldObj";
+                        try {
+                            Field oldField = oldClass.getDeclaredField(fieldName);
+                            // is old method a list?
+                            if (!oldField.getType().getSimpleName().contains("List")) {
+                                oldMethodIsList = false;
+                                oldListClass = oldField.getClass();
+                                oldObjectReference = OLD_TYPE_INSTANCE;
+                            } else {
+                                oldListClass = getListClass(oldClass, fieldName);
+                            }
+                        } catch (NoSuchFieldException ex) {
+                            // can't implement this list setter
+                            setAbstractMethodName(setMethodName);
+                            setClassAbstract();
+                            continue;
+                        }
+
+                        stBuilder.append("\tprotected void ").append(setMethodName).append("() throws MigrationException {\n");
+
                         Class listClass = getListClass(newClass, fieldName);
 
                         String oldListClassName;
                         if (classIsBuiltInType(listClass)) {
                             oldListClassName = listClass.getCanonicalName();
                         } else if (listClass.getCanonicalName().contains("Enum")) {
-                            oldListClassName = getNewClassWithOldTypePackage(listClass, oldClassName);
+//                            oldListClassName = getNewClassWithOldTypePackage(listClass, oldClassName);
+                            oldListClassName = oldListClass.getCanonicalName();
                         } else {
-                            oldListClassName = getNewClassWithOldTypePackage(listClass, oldClassName);
+//                            oldListClassName = getNewClassWithOldTypePackage(listClass, oldClassName);
+                            oldListClassName = oldListClass.getCanonicalName();
 
                             AbstractBuilder builder = AbstractBuilderFactory.getBuilder(listClass,
                                     oldListClassName, outputDirectory, packageName, callSet);
@@ -140,45 +199,76 @@ public class SetterClassBuilder extends AbstractBuilder {
 
                         }
 
-                        stBuilder.append("\t\tfor (").append(oldListClassName).append(" oldObj : ").append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("()) {\n");
-
+                        if (oldMethodIsList) {
+                            stBuilder.append("\t\tfor (").append(oldListClassName).append(" oldObj : ((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("()) {\n");
+                        }
                         if (classIsBuiltInType(listClass)) {
-                            stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(oldObj);\n");
+                            stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(").append(oldObjectReference).append(");\n");
                         } else if (listClass.getCanonicalName().contains("Enum")) {
                             stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(")
-                                    .append(listClass.getCanonicalName()).append(".fromValue(oldObj.toString()));\n");
+                                    .append(listClass.getCanonicalName()).append(".valueOf(").append(oldObjectReference).append(".toString()));\n");
                         } else {
-                            stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(listClass.getSimpleName()).append("Setter(")
-                                    .append(listClass.getCanonicalName()).append(".class,oldObj);\n");
+
+                            String className;
+                            if (abstractClasses.contains(listClass.getSimpleName())) {
+                                className = listClass.getSimpleName() + "SetterImpl";
+                            } else {
+                                className = listClass.getSimpleName() + "Setter";
+                            }
+
+                            stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(className).append("(")
+                                    .append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
                             stBuilder.append("\t\t\tsetter.set();\n");
                             stBuilder.append("\t\t\t").append(listClass.getCanonicalName()).append(" newObj = setter.getNewTypeInstance();\n");
                             stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(newObj);\n");
                         }
-                        stBuilder.append("\t\t}\n");
+                        if (oldMethodIsList) {
+                            stBuilder.append("\t\t}\n");
+                        }
                     } catch (NoSuchFieldException ex) {
                         stBuilder.append("\t\tneeds_implementation\n\n");
                     }
-                } else {
-                    if (MigrationUtility.classHasSubclasses(subClass)) {
-                        stBuilder.append("\t\t").append(subClass.getSimpleName()).append("Setter setter = ").append(subClass.getSimpleName()).append("SetterFactory.getSetter(")
-                                .append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("());\n");
-                    } else {
-                        stBuilder.append("\t\t").append(subClass.getSimpleName()).append("Setter setter = new ").append(subClass.getSimpleName()).append("Setter(");
-                        stBuilder.append(subClass.getCanonicalName()).append(".class,");
-                        stBuilder.append(OLD_TYPE_INSTANCE).append(".").append(getMethodName).append("());\n");
-                    }
+                    stBuilder.append("\n\t}\n\n");
 
-                    stBuilder.append("\t\tsetter.set();\n");
-                    stBuilder.append("\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
-                    stBuilder.append("setter.").append(ABSTRACT_SETTER_GET_NEW_TYPE_METHOD).append("()");
+                } else {
 
                     AbstractBuilder builder = AbstractBuilderFactory.getBuilder(subClass,
                             getNewClassWithOldTypePackage(subClass, oldClassName), outputDirectory, packageName, callSet);
                     builder.build();
 
+                    stBuilder.append("\tprotected void ").append(setMethodName).append("() throws MigrationException {\n");
+
+                    boolean subClassHasSubclasses = MigrationUtility.classHasSubclasses(subClass);
+                    String tabs = "\t\t";
+                    if (subClassHasSubclasses) {
+                        tabs = "\t\t\t";
+                        stBuilder.append("\t\tif (").append("((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("() != null) {\n");
+                        stBuilder.append(tabs).append(subClass.getSimpleName()).append("Setter setter = ").append(subClass.getSimpleName()).append("SetterFactory.getSetter(")
+                                .append("((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("());\n");
+                    } else {
+                        String className;
+                        if (abstractClasses.contains(subClass.getSimpleName())) {
+                            className = subClass.getSimpleName() + "SetterImpl";
+                        } else {
+                            className = subClass.getSimpleName() + "Setter";
+                        }
+                        stBuilder.append(tabs).append(subClass.getSimpleName()).append("Setter setter = new ").append(className).append("(");
+                        stBuilder.append(subClass.getCanonicalName()).append(".class,");
+                        stBuilder.append("((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("());\n");
+                    }
+
+                    stBuilder.append(tabs).append("setter.set();\n");
+                    stBuilder.append(tabs).append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
+                    stBuilder.append("setter.").append(ABSTRACT_SETTER_GET_NEW_TYPE_METHOD).append("()");
+
                     stBuilder.append(");");
+                    if (subClassHasSubclasses) {
+                        stBuilder.append("\n\t\t}\n");
+                    }
+
+                    stBuilder.append("\n\t}\n\n");
+
                 }
-                stBuilder.append("\n\t}\n\n");
 
             }
         }
@@ -190,13 +280,15 @@ public class SetterClassBuilder extends AbstractBuilder {
 
         stBuilder.append("\t@Override\n");
         stBuilder.append("\tpublic void set() throws MigrationException {\n");
+        stBuilder.append("\t\tif (oldTypeInstance != null) {\n");
         if (!extendedSetterClassName.equals(ABSTRACT_SETTER_CLASS_NAME)) {
-            stBuilder.append("\t\tsuper.set();\n");
+            stBuilder.append("\t\t\tsuper.set();\n");
         }
         addNewVariableSetterContent();
         for (String setMethod : setters) {
-            stBuilder.append("\t\t").append(setMethod).append("();\n");
+            stBuilder.append("\t\t\t").append(setMethod).append("();\n");
         }
+        stBuilder.append("\t\t}\n");
 
         stBuilder.append("\t}\n\n");
     }
@@ -215,5 +307,7 @@ public class SetterClassBuilder extends AbstractBuilder {
     @Override
     protected void completeClass() {
         stBuilder.append("}");
+        stBuilder.insert(0, classDefinitionBuilder);
+        stBuilder.insert(0, "package " + packageName + ";\n\n");
     }
 }

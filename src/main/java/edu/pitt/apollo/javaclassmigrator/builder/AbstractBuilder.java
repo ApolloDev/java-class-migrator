@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -17,6 +18,7 @@ public abstract class AbstractBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(SetterClassBuilder.class);
     protected static final String ABSTRACT_SETTER_CLASS_NAME = "AbstractSetter";
     protected static final String ABSTRACT_SETTER_GET_NEW_TYPE_METHOD = "getNewTypeInstance";
+    protected static final Set<String> abstractClasses = new HashSet<>();
     protected final StringBuilder stBuilder;
     protected final String outputDirectory;
     protected final String packageName;
@@ -24,6 +26,8 @@ public abstract class AbstractBuilder {
     protected final Class superClass;
     protected final String oldClassName;
     protected final Set<String> callSet;
+    protected boolean classIsAbstract = false;
+    protected StringBuilder classDefinitionBuilder = new StringBuilder();
 
     public AbstractBuilder(Class newClass, String oldClassName, String outputDirectory, String packageName, Set<String> callSet) {
         stBuilder = new StringBuilder();
@@ -39,11 +43,14 @@ public abstract class AbstractBuilder {
         String classCallSetName = getClassNameForCallSet();
         if (!classSetterExists(newClass) && !callSet.contains(classCallSetName)) {
             callSet.add(classCallSetName);
+            if (checkIfClassShouldBeAbstract()) {
+                setClassAbstract();
+            }
             buildClassDefinition();
             buildMethods();
+            buildSuperClassSetter();
             completeClass();
             printSetterFile();
-            buildSuperClassSetter();
             callSet.remove(classCallSetName);
         }
     }
@@ -103,6 +110,27 @@ public abstract class AbstractBuilder {
         return packageName + "." + clazz.getSimpleName();
     }
 
+    protected final void setAbstractMethodName(String methodName) {
+        stBuilder.append("\tprotected abstract void ").append(methodName).append("() throws MigrationException;\n");
+    }
+
+    protected final void setClassAbstract() {
+        classIsAbstract = true;
+        classDefinitionBuilder = new StringBuilder();
+        classDefinitionBuilder.append("public abstract class ");
+        abstractClasses.add(newClass.getSimpleName());
+    }
+
+    private final boolean checkIfClassShouldBeAbstract() {
+        try {
+            Class.forName(oldClassName);
+            return false;
+        } catch (ClassNotFoundException ex) {
+            // old type doesn't exist, so this class must be abstract
+            return true;
+        }
+    }
+
     private void buildSuperClassSetter() throws FileNotFoundException {
         if (!superClass.getSimpleName().equals("Object")) {
             String superClassNameForCallSet = getStandardClassCallName(superClass);
@@ -112,6 +140,10 @@ public abstract class AbstractBuilder {
                 AbstractBuilder builder = AbstractBuilderFactory.getBuilder(superClass,
                         getNewClassWithOldTypePackage(superClass, oldClassName), outputDirectory, packageName);
                 builder.build();
+            }
+
+            if (abstractClasses.contains(superClass.getSimpleName())) {
+                setClassAbstract();
             }
         }
     }
