@@ -48,6 +48,11 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
                     oldClassTypeName, outputDirectory, packageName, callSet);
             builder.build();
 
+            try {
+                Class.forName(oldClassTypeName);
+            } catch (ClassNotFoundException ex) {
+                continue;
+            }
 
             stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(oldClassTypeName).append(") {\n\n");
 
