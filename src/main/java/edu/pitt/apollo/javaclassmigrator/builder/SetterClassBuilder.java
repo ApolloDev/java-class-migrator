@@ -165,7 +165,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                         // is old method a list?
                         if (!oldField.getType().getSimpleName().contains("List")) {
                             oldMethodIsList = false;
-                            oldListClass = oldField.getClass();
+                            oldListClass = oldField.getDeclaringClass();
                             oldObjectReference = OLD_TYPE_INSTANCE;
                         } else {
                             oldListClass = getListClass(oldClass, fieldName);
@@ -212,8 +212,12 @@ public class SetterClassBuilder extends AbstractBuilder {
                             className = listClass.getSimpleName() + "Setter";
                         }
 
-                        stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(className).append("(")
-                                .append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
+                        stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(className).append("(");
+                        if (oldMethodIsList) {
+                            stBuilder.append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
+                        } else {
+                            stBuilder.append(listClass.getCanonicalName()).append(".class,((").append(oldListClassName).append(") ").append(oldObjectReference).append(").").append(getMethodName).append("());\n");
+                        }
                         stBuilder.append("\t\t\tsetter.set();\n");
                         stBuilder.append("\t\t\t").append(listClass.getCanonicalName()).append(" newObj = setter.getNewTypeInstance();\n");
                         stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(newObj);\n");

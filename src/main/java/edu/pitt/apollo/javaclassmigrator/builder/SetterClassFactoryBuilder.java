@@ -49,7 +49,7 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
             builder.build();
 
 
-            stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(subClass.getCanonicalName()).append(") {\n\n");
+            stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(oldClassTypeName).append(") {\n\n");
 
             if (MigrationUtility.classHasSubclasses(subClass)) {
                 stBuilder.append("\t\t\treturn ").append(subClass.getSimpleName() + "SetterFactory.getSetter(oldTypeInstance);\n");
