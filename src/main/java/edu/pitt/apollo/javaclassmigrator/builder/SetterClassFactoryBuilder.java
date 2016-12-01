@@ -1,8 +1,8 @@
 package edu.pitt.apollo.javaclassmigrator.builder;
 
+import edu.pitt.apollo.javaclassmigrator.exception.BuilderException;
 import edu.pitt.apollo.javaclassmigrator.util.MigrationUtility;
 
-import java.io.FileNotFoundException;
 import java.util.Set;
 
 /**
@@ -15,6 +15,11 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
     }
 
     @Override
+    protected String getSetterName() {
+        return newClass.getSimpleName() + "SetterFactory";
+    }
+
+    @Override
     protected String getClassNameForCallSet() {
         return getClassCallNameForFactory(newClass);
     }
@@ -22,11 +27,11 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
     @Override
     protected void buildClassDefinition() {
         stBuilder.append("package ").append(packageName).append(";\n\n");
-        stBuilder.append("public class ").append(newClass.getSimpleName()).append("SetterFactory {\n\n");
+        stBuilder.append("public class ").append(setterName).append(" {\n\n");
     }
 
     @Override
-    protected void buildMethods() throws FileNotFoundException {
+    protected void buildMethods() throws BuilderException {
 
         if (!classSetterExists(newClass)) {
             BaseTypeSetterClassBuilder builder = new BaseTypeSetterClassBuilder(newClass,
@@ -50,7 +55,7 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
                 stBuilder.append("\t\t\treturn ").append(subClass.getSimpleName() + "SetterFactory.getSetter(oldTypeInstance);\n");
             } else {
                 String className;
-                if (abstractClasses.contains(subClass.getSimpleName())) {
+                if (isClassIsAbstract(subClass)) {
                     className = subClass.getSimpleName() + "SetterImpl";
                 } else {
                     className = subClass.getSimpleName() + "Setter";
@@ -70,9 +75,4 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
         stBuilder.append("\n}\n\n");
     }
 
-    @Override
-    public void printSetterFile() throws FileNotFoundException {
-        writeClassTofile(stBuilder.toString(),
-                outputDirectory, newClass.getSimpleName() + "SetterFactory");
-    }
 }

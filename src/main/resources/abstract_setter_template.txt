@@ -1,5 +1,3 @@
-import edu.pitt.apollo.javaclassmigrator.exception.MigrationException;
-
 public abstract class AbstractSetter<N> {
 
     protected final N newTypeInstance;

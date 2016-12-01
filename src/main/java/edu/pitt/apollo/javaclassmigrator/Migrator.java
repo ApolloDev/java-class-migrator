@@ -7,10 +7,8 @@ package edu.pitt.apollo.javaclassmigrator;
 
 import edu.pitt.apollo.javaclassmigrator.builder.AbstractBuilder;
 import edu.pitt.apollo.javaclassmigrator.builder.AbstractBuilderFactory;
+import edu.pitt.apollo.javaclassmigrator.exception.BuilderException;
 import edu.pitt.apollo.javaclassmigrator.util.MigrationUtility;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 /**
  *
@@ -28,13 +26,17 @@ public class Migrator {
         this.javaPackageName = javaPackageName;
 	}
 	
-	public void createMigrationFilesForClass(Class newClass, Class oldClass) throws IOException, URISyntaxException, ClassNotFoundException, NoSuchFieldException {
+	public void createMigrationFilesForClass(Class newClass, Class oldClass) throws BuilderException {
         MigrationUtility.createInitialClassFiles(javaFileOutputDirectory, javaPackageName);
         AbstractBuilder setterClassBuilder = AbstractBuilderFactory.getBuilder(newClass, oldClass.getCanonicalName(), javaFileOutputDirectory, javaPackageName);
 		setterClassBuilder.build();
 	}
 
-    public void createMigrationFilesForClass(String newClassString, String oldClassString) throws IOException, ClassNotFoundException, URISyntaxException, NoSuchFieldException {
-        createMigrationFilesForClass(Class.forName(newClassString), Class.forName(oldClassString));
+    public void createMigrationFilesForClass(String newClassString, String oldClassString) throws BuilderException {
+        try {
+            createMigrationFilesForClass(Class.forName(newClassString), Class.forName(oldClassString));
+        } catch (ClassNotFoundException ex) {
+            throw new BuilderException("Class " + newClassString + " or " + oldClassString + " could not be found");
+        }
     }
 }
