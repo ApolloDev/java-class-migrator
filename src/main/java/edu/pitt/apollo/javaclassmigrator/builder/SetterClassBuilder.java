@@ -162,12 +162,13 @@ public class SetterClassBuilder extends AbstractBuilder {
                     boolean oldMethodIsList = true;
                     Class oldListClass;
                     String oldObjectReference = "oldObj";
+
                     try {
                         Field oldField = oldClass.getDeclaredField(fieldName);
                         // is old method a list?
                         if (!oldField.getType().getSimpleName().contains("List")) {
                             oldMethodIsList = false;
-                            oldListClass = oldField.getDeclaringClass();
+                            oldListClass = oldField.getType();
                             oldObjectReference = OLD_TYPE_INSTANCE;
                         } else {
                             oldListClass = getListClass(oldClass, fieldName);
@@ -251,6 +252,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                         } else {
                             className = subClass.getSimpleName() + "Setter";
                         }
+
                         stBuilder.append(tabs).append(subClass.getSimpleName()).append("Setter setter = new ").append(className).append("(");
                         stBuilder.append(subClass.getCanonicalName()).append(".class,");
                         stBuilder.append("((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("());\n");
