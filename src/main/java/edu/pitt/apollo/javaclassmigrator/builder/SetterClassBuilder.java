@@ -219,7 +219,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                         if (oldMethodIsList) {
                             stBuilder.append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
                         } else {
-                            stBuilder.append(listClass.getCanonicalName()).append(".class,((").append(oldListClassName).append(") ").append(oldObjectReference).append(").").append(getMethodName).append("());\n");
+                            stBuilder.append(listClass.getCanonicalName()).append(".class,((").append(oldClassName).append(") ").append(oldObjectReference).append(").").append(getMethodName).append("());\n");
                         }
                         stBuilder.append("\t\t\tsetter.set();\n");
                         stBuilder.append("\t\t\t").append(listClass.getCanonicalName()).append(" newObj = setter.getNewTypeInstance();\n");
