@@ -71,6 +71,16 @@ public class SetterClassFactoryBuilder extends AbstractBuilder {
             stBuilder.append("\t\t}\n\n");
         }
 
+        String oldClassForNewClass = getNewClassWithOldTypePackage(newClass, oldClassName);
+        stBuilder.append("\t\tif (oldTypeInstance instanceof ").append(oldClassForNewClass).append(") {\n\n");
+
+        String className = newClass.getSimpleName() + "Setter";
+
+        stBuilder.append("\t\t\treturn new ").append(className).append("(").append(newClass.getCanonicalName())
+                .append(".class, oldTypeInstance);\n");
+
+        stBuilder.append("\t\t}\n\n");
+
         stBuilder.append("\t\tthrow new UnsupportedTypeException(\"Type \" + oldTypeInstance.getClass().getCanonicalName() + \" is not supported\");\n\n");
         stBuilder.append("\t}\n\n");
     }
