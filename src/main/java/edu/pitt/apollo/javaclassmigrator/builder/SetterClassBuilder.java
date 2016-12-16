@@ -208,19 +208,26 @@ public class SetterClassBuilder extends AbstractBuilder {
                                 .append(listClass.getCanonicalName()).append(".valueOf(").append(oldObjectReference).append(".toString()));\n");
                     } else {
 
-                        String className;
-                        if (isClassIsAbstract(listClass)) {
-                            className = listClass.getSimpleName() + "SetterImpl";
+                        boolean subClassHasSubclasses = MigrationUtility.classHasSubclasses(listClass);
+                        if (subClassHasSubclasses) {
+                            stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = ").append(listClass.getSimpleName()).append("SetterFactory.getSetter(")
+                                    .append("oldObj").append(");\n");
                         } else {
-                            className = listClass.getSimpleName() + "Setter";
+                            String className;
+                            if (isClassIsAbstract(listClass)) {
+                                className = listClass.getSimpleName() + "SetterImpl";
+                            } else {
+                                className = listClass.getSimpleName() + "Setter";
+                            }
+
+                            stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(className).append("(");
+                            if (oldMethodIsList) {
+                                stBuilder.append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
+                            } else {
+                                stBuilder.append(listClass.getCanonicalName()).append(".class,((").append(oldClassName).append(") ").append(oldObjectReference).append(").").append(getMethodName).append("());\n");
+                            }
                         }
 
-                        stBuilder.append("\t\t\t").append(listClass.getSimpleName()).append("Setter setter = new ").append(className).append("(");
-                        if (oldMethodIsList) {
-                            stBuilder.append(listClass.getCanonicalName()).append(".class,").append(oldObjectReference).append(");\n");
-                        } else {
-                            stBuilder.append(listClass.getCanonicalName()).append(".class,((").append(oldClassName).append(") ").append(oldObjectReference).append(").").append(getMethodName).append("());\n");
-                        }
                         stBuilder.append("\t\t\tsetter.set();\n");
                         stBuilder.append("\t\t\t").append(listClass.getCanonicalName()).append(" newObj = setter.getNewTypeInstance();\n");
                         stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(newObj);\n");
