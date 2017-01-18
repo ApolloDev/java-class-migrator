@@ -203,7 +203,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                     }
                     if (classIsBuiltInType(listClass)) {
                         stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(").append(oldObjectReference).append(");\n");
-                    } else if (listClass.getCanonicalName().contains("Enum")) {
+                    } else if (Enum.class.isAssignableFrom(listClass)) {
                         stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(getMethodName).append("().add(")
                                 .append(listClass.getCanonicalName()).append(".valueOf(").append(oldObjectReference).append(".toString()));\n");
                     } else {
