@@ -117,7 +117,7 @@ public class SetterClassBuilder extends AbstractBuilder {
                 }
 
                 Class subClass = method.getReturnType();
-                if (subClass.getName().toLowerCase().contains("enum")) {
+                if (Enum.class.isAssignableFrom(subClass)) {
                     stBuilder.append("\tprotected void ").append(setMethodName).append("() throws MigrationException {\n");
                     stBuilder.append("\t\tif (((").append(oldClassName).append(") ").append(OLD_TYPE_INSTANCE).append(").").append(getMethodName).append("() != null) {\n");
                     stBuilder.append("\t\t\t").append(NEW_TYPE_INSTANCE).append(".").append(setMethodName).append("(");
